@@ -1,4 +1,3 @@
-// src/parser.rs
 use crate::ast::Expr;
 use crate::token::Token;
 
@@ -15,7 +14,6 @@ impl Parser {
     pub fn parse(&mut self) -> Vec<Expr> {
         let mut expressions = Vec::new();
         while self.current < self.tokens.len() {
-            // Skip extra newlines.
             if let Some(Token::Newline) = self.tokens.get(self.current) {
                 self.current += 1;
                 continue;
@@ -58,8 +56,7 @@ impl Parser {
     }
 
     fn parse_function_def(&mut self) -> Option<Expr> {
-        // Consume 'def'
-        self.current += 1;
+        self.current += 1; // consume 'def'
         let name = if let Some(Token::Identifier(name)) = self.tokens.get(self.current).cloned() {
             self.current += 1;
             name
@@ -80,16 +77,9 @@ impl Parser {
                     params.push(param.clone());
                     self.current += 1;
                 }
-                Token::Comma => {
-                    self.current += 1;
-                }
-                Token::CloseParen => {
-                    self.current += 1;
-                    break;
-                }
-                _ => {
-                    self.current += 1;
-                }
+                Token::Comma => { self.current += 1; },
+                Token::CloseParen => { self.current += 1; break; },
+                _ => { self.current += 1; }
             }
         }
 
@@ -104,8 +94,7 @@ impl Parser {
     }
 
     fn parse_if_condition(&mut self) -> Option<Expr> {
-        // Consume 'if'
-        self.current += 1;
+        self.current += 1; // consume 'if'
         let condition = self.parse_expression()?;
         if let Some(Token::Colon) = self.tokens.get(self.current) {
             self.current += 1;
@@ -113,25 +102,56 @@ impl Parser {
             return None;
         }
         let body = self.parse_block();
-        Some(Expr::IfCondition {
-            condition: Box::new(condition),
-            body,
-        })
+        Some(Expr::IfCondition { condition: Box::new(condition), body })
     }
 
     fn parse_print(&mut self) -> Option<Expr> {
-        // Consume 'print'
-        self.current += 1;
-        let expr = self.parse_expression()?;
+        self.current += 1; // consume 'print'
+        let mut args = Vec::new();
+    
+        if let Some(Token::OpenParen) = self.tokens.get(self.current) {
+            self.current += 1; // consume '('
+    
+            // Parse the first expression.
+            if let Some(expr) = self.parse_expression() {
+                args.push(expr);
+            } else {
+                return None;
+            }          
+            while let Some(tok) = self.tokens.get(self.current) {
+                if let Token::Comma = tok {
+                    self.current += 1; // consume comma
+                    if let Some(expr) = self.parse_expression() {
+                        args.push(expr);
+                    } else {
+                        return None;
+                    }
+                } else {
+                    break;
+                }
+            }
+            if let Some(Token::CloseParen) = self.tokens.get(self.current) {
+                self.current += 1; // consume ')'
+            } else {
+                return None;
+            }
+        } else {
+            if let Some(expr) = self.parse_expression() {
+                args.push(expr);
+            } else {
+                return None;
+            }
+        }
+    
         if let Some(Token::Newline) = self.tokens.get(self.current) {
             self.current += 1;
         }
-        Some(Expr::Print(Box::new(expr)))
+    
+        Some(Expr::Print(args))
     }
 
     fn parse_return(&mut self) -> Option<Expr> {
-        // Consume 'return'
-        self.current += 1;
+        self.current += 1; // consume 'return'
         let expr = self.parse_expression()?;
         if let Some(Token::Newline) = self.tokens.get(self.current) {
             self.current += 1;
@@ -140,7 +160,7 @@ impl Parser {
     }
 
     fn parse_for_loop(&mut self) -> Option<Expr> {
-        self.current += 1; // Consume 'for'
+        self.current += 1; // consume 'for'
         let iterator = if let Some(Token::Identifier(name)) = self.tokens.get(self.current).cloned() {
             self.current += 1;
             name
@@ -193,7 +213,7 @@ impl Parser {
     }
 
     fn parse_while_loop(&mut self) -> Option<Expr> {
-        self.current += 1; // Consume 'while'
+        self.current += 1; // consume 'while'
         let condition = self.parse_expression()?;
         if let Some(Token::Colon) = self.tokens.get(self.current) {
             self.current += 1;
@@ -201,17 +221,13 @@ impl Parser {
             return None;
         }
         let body = self.parse_block();
-        Some(Expr::WhileLoop {
-            condition: Box::new(condition),
-            body,
-        })
+        Some(Expr::WhileLoop { condition: Box::new(condition), body })
     }
 
     fn parse_expression(&mut self) -> Option<Expr> {
         self.parse_additive_expression()
     }
 
-    // Parse addition and subtraction
     fn parse_additive_expression(&mut self) -> Option<Expr> {
         let mut left = self.parse_multiplicative_expression()?;
         while let Some(token) = self.tokens.get(self.current) {
@@ -240,7 +256,6 @@ impl Parser {
         Some(left)
     }
 
-    // Parse multiplication and division
     fn parse_multiplicative_expression(&mut self) -> Option<Expr> {
         let mut left = self.parse_power()?;
         while let Some(token) = self.tokens.get(self.current) {
@@ -278,7 +293,6 @@ impl Parser {
         Some(left)
     }
 
-    // Parse exponentiation (right-associative)
     fn parse_power(&mut self) -> Option<Expr> {
         let left = self.parse_unary()?;
         if let Some(Token::DoubleStar) = self.tokens.get(self.current) {
@@ -293,7 +307,6 @@ impl Parser {
         Some(left)
     }
 
-    // Parse unary minus
     fn parse_unary(&mut self) -> Option<Expr> {
         if let Some(Token::Minus) = self.tokens.get(self.current) {
             self.current += 1;
@@ -307,66 +320,26 @@ impl Parser {
         self.parse_primary()
     }
 
-    // Parse primary expressions (numbers, floats, variables)
     fn parse_primary(&mut self) -> Option<Expr> {
-        // Check for parenthesized expressions.
         if let Some(Token::OpenParen) = self.tokens.get(self.current) {
-            self.current += 1; // consume '('
+            self.current += 1;
             let expr = self.parse_expression();
             if let Some(Token::CloseParen) = self.tokens.get(self.current) {
-                self.current += 1; // consume ')'
+                self.current += 1;
                 return expr;
             } else {
-                // Expected closing parenthesis.
                 return None;
             }
         }
-        let expr = match self.tokens.get(self.current) {
-            Some(Token::Number(value)) => {
-                self.current += 1;
-                Expr::Number(*value)
-            }
-            Some(Token::Float(value)) => {
-                self.current += 1;
-                Expr::Float(*value)
-            }
-            Some(Token::Identifier(name)) => {
-                self.current += 1;
-                Expr::Variable(name.clone())
-            }
-            _ => return None,
-        };
-    
-        // Optionally, handle relational operators after the primary expression.
-        let mut left = expr;
-        if let Some(token) = self.tokens.get(self.current) {
-            match token {
-                Token::Greater => {
-                    self.current += 1;
-                    let right = self.parse_additive_expression()?;
-                    left = Expr::Arithmetic {
-                        left: Box::new(left),
-                        operator: ">".to_string(),
-                        right: Box::new(right),
-                    };
-                }
-                Token::Less => {
-                    self.current += 1;
-                    let right = self.parse_additive_expression()?;
-                    left = Expr::Arithmetic {
-                        left: Box::new(left),
-                        operator: "<".to_string(),
-                        right: Box::new(right),
-                    };
-                }
-                _ => {}
-            }
+        match self.tokens.get(self.current) {
+            Some(Token::Number(value)) => { self.current += 1; Some(Expr::Number(*value)) },
+            Some(Token::Float(value)) => { self.current += 1; Some(Expr::Float(*value)) },
+            Some(Token::StringLiteral(s)) => { self.current += 1; Some(Expr::String(s.clone())) },
+            Some(Token::Identifier(name)) => { self.current += 1; Some(Expr::Variable(name.clone())) },
+            _ => None,
         }
-        Some(left)
     }
-    
 
-    // Parse a block of statements, delimited by Indent/Dedent tokens.
     fn parse_block(&mut self) -> Vec<Expr> {
         let mut statements = Vec::new();
         while let Some(Token::Newline) = self.tokens.get(self.current) {

@@ -1,15 +1,15 @@
-// token.rs
 #[derive(Debug, PartialEq, Clone)]
 pub enum Token {
     Identifier(String),
     Number(i64),
     Float(f64),
+    StringLiteral(String), // new token for strings
     Equals,
     Minus,
     Plus,
-    Star,       
+    Star,
     Slash,
-    DoubleSlash,     
+    DoubleSlash,
     DoubleStar,
     Greater,
     Less,

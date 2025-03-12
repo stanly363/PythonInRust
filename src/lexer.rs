@@ -1,21 +1,17 @@
-// lexer.rs
 use crate::token::Token;
-use std::iter::Peekable;
 
 pub fn lex(input: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
     let mut indent_stack: Vec<usize> = vec![0];
-    
-    // Process the input line by line to handle indentation.
+
+    // Process input line by line (to handle indentation)
     for line in input.lines() {
-        // Count leading spaces.
         let indent = line.chars().take_while(|c| *c == ' ').count();
         let trimmed = line.trim_start();
-        // Skip empty lines.
         if trimmed.is_empty() {
             continue;
         }
-        // Handle indent/dedent tokens.
+        // Emit Indent/Dedent tokens
         let current_indent = *indent_stack.last().unwrap();
         if indent > current_indent {
             indent_stack.push(indent);
@@ -26,17 +22,15 @@ pub fn lex(input: &str) -> Vec<Token> {
                 tokens.push(Token::Dedent);
             }
         }
-        // Lex the tokens for the current (trimmed) line.
+        // Lex the tokens for the current (trimmed) line
         let mut chars = trimmed.chars().peekable();
         while let Some(&ch) = chars.peek() {
             match ch {
                 ' ' | '\t' => { chars.next(); } // skip inner whitespace
                 '#' => {
-                    // Skip comments.
+                    // Skip comment until newline
                     while let Some(c) = chars.next() {
-                        if c == '\n' {
-                            break;
-                        }
+                        if c == '\n' { break; }
                     }
                 }
                 '0'..='9' => {
@@ -58,6 +52,20 @@ pub fn lex(input: &str) -> Vec<Token> {
                     } else if let Ok(int_value) = number.parse::<i64>() {
                         tokens.push(Token::Number(int_value));
                     }
+                }
+                '\'' => {
+                    // String literal (using single quotes)
+                    chars.next(); // consume opening quote
+                    let mut literal = String::new();
+                    while let Some(&c) = chars.peek() {
+                        if c == '\'' { break; }
+                        literal.push(c);
+                        chars.next();
+                    }
+                    if let Some(&'\'') = chars.peek() {
+                        chars.next(); // consume closing quote
+                    }
+                    tokens.push(Token::StringLiteral(literal));
                 }
                 'a'..='z' | 'A'..='Z' => {
                     let mut ident = String::new();
@@ -115,10 +123,8 @@ pub fn lex(input: &str) -> Vec<Token> {
                 }
             }
         }
-        // End of the line.
         tokens.push(Token::Newline);
     }
-    // If any indented block is still open, close it.
     while indent_stack.len() > 1 {
         indent_stack.pop();
         tokens.push(Token::Dedent);

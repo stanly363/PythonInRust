@@ -1,8 +1,8 @@
-// ast.rs
 #[derive(Debug)]
 pub enum Expr {
     Number(i64),
     Float(f64),
+    String(String), // new variant for string literals
     Variable(String),
     Assignment(String, Box<Expr>),
     Arithmetic {
@@ -29,6 +29,13 @@ pub enum Expr {
         condition: Box<Expr>,
         body: Vec<Expr>,
     },
-    Print(Box<Expr>),
+    Print(Vec<Expr>), // now holds a list of expressions
     Return(Box<Expr>),
+}
+
+// A common Value type used during evaluation.
+#[derive(Debug, Clone)]
+pub enum Value {
+    Number(f64),
+    Str(String),
 }
