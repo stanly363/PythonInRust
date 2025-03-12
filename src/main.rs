@@ -13,10 +13,11 @@ use std::io::{self, Write};
 
 fn main() {
     const CODE: &str = "
-x = 1000000
-while x > 2:
-    print(x)
-    x = x / 2.6
+    
+    x = 1000000
+    for i in range(0, x)
+    print('x')
+    
     ";
     let tokens = lex(CODE);
     let mut parser = Parser::new(tokens);

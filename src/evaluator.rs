@@ -39,6 +39,7 @@ pub fn evaluate<W: Write>(
         Expr::Print(value) => {
             if let Some(result) = evaluate(value, variables, writer) {
                 writeln!(writer, "{}", result).unwrap();
+                writer.flush().unwrap();
             }
             None
         }

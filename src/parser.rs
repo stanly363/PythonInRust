@@ -309,6 +309,18 @@ impl Parser {
 
     // Parse primary expressions (numbers, floats, variables)
     fn parse_primary(&mut self) -> Option<Expr> {
+        // Check for parenthesized expressions.
+        if let Some(Token::OpenParen) = self.tokens.get(self.current) {
+            self.current += 1; // consume '('
+            let expr = self.parse_expression();
+            if let Some(Token::CloseParen) = self.tokens.get(self.current) {
+                self.current += 1; // consume ')'
+                return expr;
+            } else {
+                // Expected closing parenthesis.
+                return None;
+            }
+        }
         let expr = match self.tokens.get(self.current) {
             Some(Token::Number(value)) => {
                 self.current += 1;
@@ -324,8 +336,8 @@ impl Parser {
             }
             _ => return None,
         };
-
-        // Handle relational operators after the primary expression
+    
+        // Optionally, handle relational operators after the primary expression.
         let mut left = expr;
         if let Some(token) = self.tokens.get(self.current) {
             match token {
@@ -352,6 +364,7 @@ impl Parser {
         }
         Some(left)
     }
+    
 
     // Parse a block of statements, delimited by Indent/Dedent tokens.
     fn parse_block(&mut self) -> Vec<Expr> {
